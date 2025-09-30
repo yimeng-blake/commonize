@@ -31,7 +31,6 @@ class CommonSizeLine:
             industry_text = f"{self.industry_common_size:.1%}"
         return [self.label, value_text, percent_text, industry_text]
 
-
 class StatementNotAvailableError(RuntimeError):
     """Raised when the requested statement cannot be prepared."""
 
@@ -103,7 +102,6 @@ def _apply_industry_average(
         if not values:
             continue
         line.industry_common_size = sum(values) / len(values)
-
 
 _INCOME_LAYOUT = [
     ("Revenue", "Revenues", 0),

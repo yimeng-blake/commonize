@@ -4,7 +4,6 @@ from __future__ import annotations
 import argparse
 import sys
 from typing import Callable, Iterable, List
-
 from . import common_size, industry_cache, industry_jobs, sec_client
 
 try:
@@ -73,6 +72,7 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
             " instead of fetching peer filings inline."
         ),
     )
+
     return parser.parse_args(list(argv))
 
 

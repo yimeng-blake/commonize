@@ -76,7 +76,6 @@ def test_cached_industry_skips_peer_fetch(monkeypatch):
     assert response.status_code == 200
     assert "derived from 3 peers" in response.text
 
-
 def test_index_shows_pending_job(monkeypatch):
     info = _setup_common_mocks(monkeypatch)
 
@@ -111,7 +110,6 @@ def test_index_shows_pending_job(monkeypatch):
     assert "Industry benchmark queued" in response.text
     assert captured.get("called") is True
 
-
 def test_index_renders_statement(monkeypatch):
     _setup_common_mocks(monkeypatch)
     client = TestClient(web.create_app())
@@ -124,7 +122,6 @@ def test_index_renders_statement(monkeypatch):
     assert "25" in response.text
     assert "Industry Common Size" in response.text
 
-
 def test_download_csv(monkeypatch):
     _setup_common_mocks(monkeypatch)
     client = TestClient(web.create_app())
@@ -134,7 +131,6 @@ def test_download_csv(monkeypatch):
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/csv")
     assert "Industry Common Size" in response.text
-
 
 def test_download_excel(monkeypatch):
     _setup_common_mocks(monkeypatch)

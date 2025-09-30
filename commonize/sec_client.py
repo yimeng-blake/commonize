@@ -24,7 +24,6 @@ _TICKER_CACHE.mkdir(parents=True, exist_ok=True)
 _TICKER_CACHE_FILE = _TICKER_CACHE / "ticker_cik_map.json"
 _SIC_CACHE_FILE = _TICKER_CACHE / "cik_sic_map.json"
 
-
 class SECClientError(RuntimeError):
     """Raised when a request to the SEC API fails."""
 

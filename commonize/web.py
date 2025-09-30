@@ -39,7 +39,6 @@ _STATEMENT_BUILDERS: Dict[StatementType, Callable[..., List[CommonSizeLine]]] = 
 
 _DEFAULT_WEB_PEERS = 10
 
-
 def _format_currency(value: float | None) -> str:
     if value is None:
         return "-"
@@ -112,7 +111,6 @@ def _prepare_statement(
         "job": job_status,
     }
     return info, lines, peers_payload
-
 
 def _as_dataframe(lines: Iterable[CommonSizeLine]) -> pd.DataFrame:
     data: List[Dict[str, float | str | int | bool | None]] = []

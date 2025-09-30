@@ -52,7 +52,6 @@ def ensure_cache_schema(conn: sqlite3.Connection) -> None:
 
     _ensure_schema(conn)
 
-
 def load_benchmark(
     sic: Optional[str],
     statement: str,
