@@ -105,7 +105,6 @@ def _prepare_statement(
     peers_payload = {"industry": industry_info, "peer_count": peer_count}
     return info, lines, peers_payload
 
-
 def _as_dataframe(lines: Iterable[CommonSizeLine]) -> pd.DataFrame:
     data: List[Dict[str, float | str | int | bool | None]] = []
     for line in lines:
