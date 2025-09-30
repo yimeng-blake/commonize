@@ -29,6 +29,7 @@ def _render_table(lines: Iterable[common_size.CommonSizeLine]) -> str:
         "Company common size",
         "Industry common size",
     ]
+
     if tabulate:
         return tabulate(rows, headers=headers, tablefmt="github")
     # Simple fallback rendering
@@ -78,6 +79,7 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
             " instead of fetching peer filings inline."
         ),
     )
+
     return parser.parse_args(list(argv))
 
 

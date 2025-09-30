@@ -6,6 +6,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 from commonize import common_size, sec_client
 
 
+
 def _build_facts(tag_values):
     return {
         "facts": {

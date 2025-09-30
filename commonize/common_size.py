@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable, List, Optional, Sequence, Tuple, Union
 
+
 from . import sec_client
 
 
@@ -27,6 +28,7 @@ class CommonSizeLine:
             value_text = "-"
         else:
             value_text = f"{value_millions:,.1f}"
+
         if self.common_size is None:
             percent_text = "-"
         else:
@@ -36,7 +38,6 @@ class CommonSizeLine:
         else:
             industry_text = f"{self.industry_common_size:.1%}"
         return [self.label, value_text, percent_text, industry_text]
-
 
 class StatementNotAvailableError(RuntimeError):
     """Raised when the requested statement cannot be prepared."""
@@ -74,6 +75,7 @@ def _build_lines(facts: dict, layout: Iterable[tuple], *, period: str) -> List[C
             value = sec_client.extract_value(fact)
             if value is not None:
                 break
+
 
         lines.append(
             CommonSizeLine(

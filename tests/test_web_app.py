@@ -16,6 +16,7 @@ def _build_lines():
     return [
         CommonSizeLine(label="Revenue", value=100_000_000.0, common_size=1.0),
         CommonSizeLine(label="Net income", value=25_000_000.0, common_size=0.25),
+
     ]
 
 
@@ -76,7 +77,6 @@ def test_cached_industry_skips_peer_fetch(monkeypatch):
     assert response.status_code == 200
     assert "derived from 3 peers" in response.text
 
-
 def test_index_shows_pending_job(monkeypatch):
     info = _setup_common_mocks(monkeypatch)
 
@@ -110,7 +110,6 @@ def test_index_shows_pending_job(monkeypatch):
     assert response.status_code == 200
     assert "Industry benchmark queued" in response.text
     assert captured.get("called") is True
-
 
 def test_index_renders_statement(monkeypatch):
     _setup_common_mocks(monkeypatch)
