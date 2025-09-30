@@ -171,6 +171,12 @@
         color: #94a3b8;
         font-size: 0.9rem;
       }
+      .industry-note.pending {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        color: #38bdf8;
+      }
       .error {
         margin-top: 1.5rem;
         padding: 1rem 1.25rem;
@@ -251,6 +257,11 @@
         </p>
         {% elif peer_count %}
         <p class="industry-note">Industry average derived from {{ peer_count }} peer{{ 's' if peer_count == 1 else 's' }}.</p>
+        {% endif %}
+        {% if peer_count == 0 and peers.job and peers.job.status != 'succeeded' %}
+        <p class="industry-note pending" role="status">
+          ⏳ Industry benchmark queued — refresh in a few moments to view the averages.
+        </p>
         {% endif %}
         <table>
           <thead>

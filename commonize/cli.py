@@ -4,8 +4,7 @@ from __future__ import annotations
 import argparse
 import sys
 from typing import Callable, Iterable, List
-
-from . import common_size, industry_cache, sec_client
+from . import common_size, industry_cache, industry_jobs, sec_client
 
 try:
     from tabulate import tabulate
@@ -65,6 +64,15 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         default=0,
         help="Number of peer companies (same SIC) to include when computing industry averages.",
     )
+    parser.add_argument(
+        "--queue-industry",
+        action="store_true",
+        help=(
+            "Queue a background job to build the industry benchmark when the cache is cold"
+            " instead of fetching peer filings inline."
+        ),
+    )
+
     return parser.parse_args(list(argv))
 
 
@@ -89,23 +97,32 @@ def main(argv: Iterable[str] | None = None) -> int:
                     if idx < len(lines) and ratio is not None:
                         lines[idx].industry_common_size = ratio
             else:
-                _, peers, peer_fact_list = sec_client.fetch_peer_company_facts(
-                    ticker_info.cik, max_companies=args.industry_peers
-                )
-                if peer_fact_list:
-                    lines = builder(facts, period=args.period, peers=peer_fact_list)
-                    ratios = [line.industry_common_size for line in lines]
-                    try:
-                        industry_cache.store_benchmark(
-                            industry_info.sic,
-                            args.statement,
-                            args.period,
-                            ratios,
-                            len(peers),
-                            line_count=len(lines),
-                        )
-                    except ValueError:
-                        pass
+                if args.queue_industry:
+                    industry_jobs.ensure_benchmark_ready(
+                        ticker_info,
+                        industry_info,
+                        args.statement,
+                        args.period,
+                        max_companies=args.industry_peers,
+                    )
+                else:
+                    _, peers, peer_fact_list = sec_client.fetch_peer_company_facts(
+                        ticker_info.cik, max_companies=args.industry_peers
+                    )
+                    if peer_fact_list:
+                        lines = builder(facts, period=args.period, peers=peer_fact_list)
+                        ratios = [line.industry_common_size for line in lines]
+                        try:
+                            industry_cache.store_benchmark(
+                                industry_info.sic,
+                                args.statement,
+                                args.period,
+                                ratios,
+                                len(peers),
+                                line_count=len(lines),
+                            )
+                        except ValueError:
+                            pass
     except Exception as exc:  # pragma: no cover - CLI entry point
         print(f"Error: {exc}", file=sys.stderr)
         return 1

@@ -1,4 +1,5 @@
 """Commonize package for generating common size financial statements."""
+from typing import TYPE_CHECKING, Any
 from .common_size import (
     CommonSizeLine,
     StatementNotAvailableError,
@@ -6,7 +7,6 @@ from .common_size import (
     build_income_statement,
 )
 from .cli import main as cli_main
-from .web import create_app
 from .industry_cache import IndustryBenchmark, load_benchmark, store_benchmark
 from .sec_client import (
     SECClientError,
@@ -19,6 +19,22 @@ from .sec_client import (
     resolve_cik,
 )
 
+if TYPE_CHECKING:  # pragma: no cover - import for type hints only
+    from .web import create_app as _create_app
+    from .worker import main as _worker_main
+
+
+def create_app(*args: Any, **kwargs: Any):  # pragma: no cover - thin wrapper
+    from .web import create_app as _create_app
+
+    return _create_app(*args, **kwargs)
+
+
+def worker_main(*args: Any, **kwargs: Any) -> None:  # pragma: no cover - thin wrapper
+    from .worker import main as _worker_main
+
+    _worker_main(*args, **kwargs)
+
 __all__ = [
     "CommonSizeLine",
     "StatementNotAvailableError",
@@ -27,6 +43,7 @@ __all__ = [
     "build_income_statement",
     "cli_main",
     "create_app",
+    "worker_main",
     "IndustryBenchmark",
     "load_benchmark",
     "store_benchmark",

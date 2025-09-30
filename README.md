@@ -12,6 +12,7 @@ export options.
 - Modern web UI for viewing statements and downloading CSV or Excel exports
 - Industry benchmarking that compares a company's common size results with peers sharing the same SEC SIC classification
 - Persistent local caching of computed industry averages to keep web requests responsive
+- Background job queue for precomputing industry benchmarks so that interactive requests stay low latency
 - Friendly command line interface with optional GitHub-flavored markdown output
 
 ## Installation
@@ -41,6 +42,7 @@ Available options:
 - `--period`: `annual` or `quarterly`
 - `--force-refresh`: Refreshes the cached ticker metadata
 - `--industry-peers`: Number of peer companies (matched by SEC standard industrial classification) to include when computing industry averages
+- `--queue-industry`: When the industry cache is cold, enqueue a background job instead of computing the benchmark inline
 
 ### Running the web application
 
@@ -49,7 +51,32 @@ uvicorn commonize.web:create_app --factory --reload
 ```
 
 Then open <http://127.0.0.1:8000> in your browser, enter a ticker symbol (for example, `AAPL`), and generate a statement. The
-interface renders the common size view, juxtaposes the company's metrics with industry averages derived from peer SEC filings, and exposes download buttons for CSV and Excel exports.
+interface renders the common size view, juxtaposes the company's metrics with industry averages derived from peer SEC filings, and exposes download buttons for CSV and Excel exports. When an industry benchmark is not yet cached the UI immediately renders the company statement and enqueues a background job so users are never blocked while SEC downloads complete.
+
+### Running the benchmark worker
+
+Industry benchmarks are computed by a lightweight worker to keep interactive requests fast. Launch the worker alongside the web app (or whenever you want to hydrate the cache):
+
+```bash
+python -m commonize.worker
+```
+
+If you prefer embedding the loop directly:
+
+```bash
+python - <<'PY'
+from commonize.industry_jobs import worker_loop
+import threading
+
+stop = threading.Event()
+try:
+    worker_loop(stop)
+except KeyboardInterrupt:
+    stop.set()
+PY
+```
+
+The CLI can enqueue background work via `--industry-peers ... --queue-industry` so the worker processes the benchmark.
 
 ### Where the data comes from
 
@@ -60,6 +87,6 @@ All company and industry data are sourced from the U.S. Securities and Exchange 
 1. **Local CLI** – Fetch SEC data and render common size statements in the terminal.
 2. **Interactive web experience (current stage)** – Serve the statements through FastAPI with downloadable exports.
 3. **Deployment** – Package and deploy the application to a managed cloud platform.
-4. **Automation & monitoring** – Add background jobs, logging, and observability to ensure reliability.
+4. **Automation & monitoring** – Expand the benchmark worker with scheduling, logging, and observability to ensure reliability.
 
 Contributions and ideas are welcome!

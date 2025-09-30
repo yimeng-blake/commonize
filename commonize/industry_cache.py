@@ -13,6 +13,10 @@ _CACHE_DIR = Path(os.environ.get("COMMONIZE_CACHE", "./.commonize-cache"))
 _CACHE_DIR.mkdir(parents=True, exist_ok=True)
 _DB_PATH = _CACHE_DIR / "industry_benchmarks.sqlite3"
 
+# Expose the database path so other modules (such as background workers) can
+# coordinate on the same persistent store without duplicating configuration.
+DB_PATH = _DB_PATH
+
 _DEFAULT_TTL_SECONDS = int(os.environ.get("COMMONIZE_INDUSTRY_CACHE_TTL", 60 * 60 * 24 * 7))
 
 
@@ -42,6 +46,11 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         """
     )
 
+
+def ensure_cache_schema(conn: sqlite3.Connection) -> None:
+    """Public wrapper so other modules can ensure the cache table exists."""
+
+    _ensure_schema(conn)
 
 def load_benchmark(
     sic: Optional[str],

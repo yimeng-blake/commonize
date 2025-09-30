@@ -4,8 +4,10 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from fastapi.testclient import TestClient
+
 from commonize.common_size import CommonSizeLine, StatementNotAvailableError
 from commonize.industry_cache import IndustryBenchmark
+from commonize.industry_jobs import BenchmarkJob
 from commonize.sec_client import IndustryInfo, TickerInfo
 from commonize import web
 
@@ -28,12 +30,8 @@ def _setup_common_mocks(monkeypatch):
         "load_benchmark",
         lambda sic, statement, period, expected_line_count=None: None,
     )
-    monkeypatch.setattr(web, "store_benchmark", lambda *args, **kwargs: None)
-    monkeypatch.setattr(
-        web,
-        "fetch_peer_company_facts",
-        lambda cik: (industry, [info], [{"facts": {}}]),
-    )
+    monkeypatch.setattr(web, "enqueue_benchmark_job", lambda *args, **kwargs: None)
+    monkeypatch.setattr(web, "get_job_status", lambda *args, **kwargs: None)
     monkeypatch.setitem(
         web._STATEMENT_BUILDERS,
         "income",
@@ -61,15 +59,11 @@ def test_cached_industry_skips_peer_fetch(monkeypatch):
         "load_benchmark",
         lambda sic, statement, period, expected_line_count=None: benchmark,
     )
-    def fail_store(*args, **kwargs):
-        raise AssertionError("should not store when cache hit")
+    def fail_enqueue(*args, **kwargs):
+        raise AssertionError("should not enqueue job when cache is warm")
 
-    monkeypatch.setattr(web, "store_benchmark", fail_store)
-
-    def fail_fetch(*args, **kwargs):
-        raise AssertionError("should not fetch peers when cache is warm")
-
-    monkeypatch.setattr(web, "fetch_peer_company_facts", fail_fetch)
+    monkeypatch.setattr(web, "enqueue_benchmark_job", fail_enqueue)
+    monkeypatch.setattr(web, "get_job_status", lambda *args, **kwargs: None)
     monkeypatch.setitem(
         web._STATEMENT_BUILDERS,
         "income",
@@ -81,6 +75,40 @@ def test_cached_industry_skips_peer_fetch(monkeypatch):
 
     assert response.status_code == 200
     assert "derived from 3 peers" in response.text
+
+def test_index_shows_pending_job(monkeypatch):
+    info = _setup_common_mocks(monkeypatch)
+
+    captured = {}
+
+    def capture_enqueue(*args, **kwargs):
+        captured["called"] = True
+
+    pending_job = BenchmarkJob(
+        sic="1234",
+        statement="income",
+        period="annual",
+        max_companies=5,
+        subject_cik=info.cik,
+        subject_ticker=info.ticker,
+        subject_title=info.title,
+        status="pending",
+        queued_at=0.0,
+        started_at=None,
+        finished_at=None,
+        attempts=0,
+        error=None,
+    )
+
+    monkeypatch.setattr(web, "enqueue_benchmark_job", capture_enqueue)
+    monkeypatch.setattr(web, "get_job_status", lambda *args, **kwargs: pending_job)
+
+    client = TestClient(web.create_app())
+    response = client.get("/", params={"ticker": "demo", "statement": "income", "period": "annual"})
+
+    assert response.status_code == 200
+    assert "Industry benchmark queued" in response.text
+    assert captured.get("called") is True
 
 def test_index_renders_statement(monkeypatch):
     _setup_common_mocks(monkeypatch)

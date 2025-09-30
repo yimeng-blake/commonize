@@ -16,12 +16,12 @@ from .common_size import (
     build_balance_sheet,
     build_income_statement,
 )
-from .industry_cache import IndustryBenchmark, load_benchmark, store_benchmark
+from .industry_cache import IndustryBenchmark, load_benchmark
+from .industry_jobs import enqueue_benchmark_job, get_job_status
 from .sec_client import (
     SECClientError,
     TickerInfo,
     fetch_company_facts,
-    fetch_peer_company_facts,
     get_company_industry,
     resolve_cik,
 )
@@ -37,6 +37,7 @@ _STATEMENT_BUILDERS: Dict[StatementType, Callable[..., List[CommonSizeLine]]] = 
     "balance": build_balance_sheet,
 }
 
+_DEFAULT_WEB_PEERS = 10
 
 def _format_currency(value: float | None) -> str:
     if value is None:
@@ -84,25 +85,31 @@ def _prepare_statement(
         expected_line_count=expected_line_count,
     )
     peer_count = _apply_cached_industry(lines, benchmark)
+    job_status = None
 
     if benchmark is None:
-        industry_info, peer_companies, peer_facts = fetch_peer_company_facts(info.cik)
-        peer_count = len(peer_companies)
-        if peer_facts:
-            lines = builder(facts, period=period, peers=peer_facts)
-            ratios = [line.industry_common_size for line in lines]
-            try:
-                store_benchmark(
-                    industry_info.sic,
-                    statement,
-                    period,
-                    ratios,
-                    peer_count,
-                    line_count=len(lines),
-                )
-            except ValueError:  # pragma: no cover - guard if layouts change mid-run
-                pass
-    peers_payload = {"industry": industry_info, "peer_count": peer_count}
+        enqueue_benchmark_job(
+            info,
+            industry_info,
+            statement,
+            period,
+            max_companies=_DEFAULT_WEB_PEERS,
+        )
+        benchmark = load_benchmark(
+            industry_info.sic,
+            statement,
+            period,
+            expected_line_count=expected_line_count,
+        )
+        peer_count = _apply_cached_industry(lines, benchmark)
+        if benchmark is None:
+            job_status = get_job_status(industry_info.sic, statement, period)
+
+    peers_payload = {
+        "industry": industry_info,
+        "peer_count": peer_count,
+        "job": job_status,
+    }
     return info, lines, peers_payload
 
 def _as_dataframe(lines: Iterable[CommonSizeLine]) -> pd.DataFrame:
@@ -168,6 +175,7 @@ def create_app() -> FastAPI:
             "period_label": "Annual" if period == "annual" else "Quarterly",
             "industry": None,
             "peer_count": 0,
+            "peers": {},
         }
 
         if ticker:
@@ -184,6 +192,7 @@ def create_app() -> FastAPI:
                 context["rows"] = _format_lines(lines)
                 context["industry"] = peer_payload.get("industry")
                 context["peer_count"] = peer_payload.get("peer_count", 0)
+                context["peers"] = peer_payload
 
         return templates.TemplateResponse(request, "index.html", context)
 
