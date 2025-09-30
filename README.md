@@ -4,6 +4,7 @@ Commonize turns U.S. Securities and Exchange Commission (SEC) filings into commo
 with both a command line interface and a modern FastAPI web experience that renders statements, complete with CSV and Excel
 export options.
 
+
 ## Features
 
 - Convert balance sheets or income statements into common size format

@@ -52,6 +52,7 @@ def test_build_income_statement_computes_percentages():
     assert operating_expenses.is_header is True
 
 
+
 def test_missing_denominator_raises():
     facts = _build_facts({"Revenues": [(0.0, "10-K", "FY")]})
     try:

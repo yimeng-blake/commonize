@@ -15,6 +15,7 @@ class CommonSizeLine:
     indent: int = 0
     is_header: bool = False
 
+
     def as_row(self) -> List[str]:
         if self.value is None:
             value_text = "-"

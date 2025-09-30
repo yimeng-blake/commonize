@@ -57,6 +57,7 @@ def _prepare_statement(
 
 def _as_dataframe(lines: Iterable[CommonSizeLine]) -> pd.DataFrame:
     data: List[Dict[str, float | str | int | bool | None]] = []
+
     for line in lines:
         percent = None if line.common_size is None else line.common_size * 100
         data.append(
@@ -67,6 +68,7 @@ def _as_dataframe(lines: Iterable[CommonSizeLine]) -> pd.DataFrame:
                 "Common Size (%)": percent,
                 "Indent Level": line.indent,
                 "Heading": line.is_header,
+
             }
         )
     return pd.DataFrame(data)
@@ -74,6 +76,7 @@ def _as_dataframe(lines: Iterable[CommonSizeLine]) -> pd.DataFrame:
 
 def _format_lines(lines: Iterable[CommonSizeLine]) -> List[Dict[str, str | int | bool]]:
     formatted: List[Dict[str, str | int | bool]] = []
+
     for line in lines:
         formatted.append(
             {
@@ -83,6 +86,7 @@ def _format_lines(lines: Iterable[CommonSizeLine]) -> List[Dict[str, str | int |
                 "indent": line.indent,
                 "is_heading": line.is_header,
                 "is_emphasis": line.label.lower().startswith("total"),
+
             }
         )
     return formatted
