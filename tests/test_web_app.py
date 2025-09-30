@@ -14,8 +14,9 @@ from commonize import web
 
 def _build_lines():
     return [
-        CommonSizeLine(label="Revenue", value=100.0, common_size=1.0),
-        CommonSizeLine(label="Net income", value=25.0, common_size=0.25),
+        CommonSizeLine(label="Revenue", value=100_000_000.0, common_size=1.0),
+        CommonSizeLine(label="Net income", value=25_000_000.0, common_size=0.25),
+
     ]
 
 
@@ -119,8 +120,9 @@ def test_index_renders_statement(monkeypatch):
     assert response.status_code == 200
     assert "Demo Corporation" in response.text
     assert "Net income" in response.text
-    assert "25" in response.text
+    assert "25.0" in response.text
     assert "Industry Common Size" in response.text
+
 
 def test_download_csv(monkeypatch):
     _setup_common_mocks(monkeypatch)
@@ -131,6 +133,8 @@ def test_download_csv(monkeypatch):
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/csv")
     assert "Industry Common Size" in response.text
+    assert "Value (USD millions)" in response.text
+
 
 def test_download_excel(monkeypatch):
     _setup_common_mocks(monkeypatch)

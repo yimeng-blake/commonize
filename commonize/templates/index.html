@@ -258,6 +258,7 @@
         {% elif peer_count %}
         <p class="industry-note">Industry average derived from {{ peer_count }} peer{{ 's' if peer_count == 1 else 's' }}.</p>
         {% endif %}
+        <p class="industry-note">All monetary amounts are presented in USD millions.</p>
         {% if peer_count == 0 and peers.job and peers.job.status != 'succeeded' %}
         <p class="industry-note pending" role="status">
           ⏳ Industry benchmark queued — refresh in a few moments to view the averages.
@@ -267,7 +268,7 @@
           <thead>
             <tr>
               <th scope="col">Line Item</th>
-              <th scope="col">Value (USD)</th>
+              <th scope="col">Value (USD millions)</th>
               <th scope="col">Company Common Size</th>
               <th scope="col">Industry Common Size</th>
             </tr>

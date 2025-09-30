@@ -255,7 +255,24 @@ def select_fact(
     return candidates[0][1]
 
 
+def _unit_multiplier(uom: Optional[str]) -> float:
+    if not uom:
+        return 1.0
+    normalized = uom.lower()
+    if "million" in normalized or normalized.endswith("m"):
+        return 1_000_000.0
+    if "thousand" in normalized or normalized.endswith("k"):
+        return 1_000.0
+    return 1.0
+
+
 def extract_value(fact: Optional[dict]) -> Optional[float]:
     if not fact:
         return None
-    return float(fact.get("val"))
+    try:
+        value = float(fact.get("val"))
+    except (TypeError, ValueError):  # pragma: no cover - defensive
+        return None
+    multiplier = _unit_multiplier(fact.get("uom"))
+    return value * multiplier
+

@@ -3,7 +3,8 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from commonize import common_size
+from commonize import common_size, sec_client
+
 
 
 def _build_facts(tag_values):
@@ -113,3 +114,65 @@ def test_balance_sheet_includes_hierarchical_items():
     accounts_payable = next(line for line in lines if line.label == "Accounts payable")
     assert accounts_payable.indent == 1
     assert lines[-1].label == "Total liabilities and equity"
+
+
+def test_income_statement_uses_alternative_tags():
+    facts = {
+        "facts": {
+            "us-gaap": {
+                "RevenueFromContractWithCustomerExcludingAssessedTax": {
+                    "units": {
+                        "USD": [
+                            {
+                                "val": 300_000_000,
+                                "end": "2023-12-31",
+                                "form": "10-K",
+                                "fp": "FY",
+                            }
+                        ]
+                    }
+                },
+                "CostOfSales": {
+                    "units": {
+                        "USD": [
+                            {
+                                "val": 120_000_000,
+                                "end": "2023-12-31",
+                                "form": "10-K",
+                                "fp": "FY",
+                            }
+                        ]
+                    }
+                },
+                "GrossProfit": {
+                    "units": {
+                        "USD": [
+                            {
+                                "val": 180_000_000,
+                                "end": "2023-12-31",
+                                "form": "10-K",
+                                "fp": "FY",
+                            }
+                        ]
+                    }
+                },
+            }
+        }
+    }
+
+    lines = common_size.build_income_statement(facts)
+    revenue_line = lines[0]
+    assert revenue_line.value == 300_000_000
+    cost_line = next(line for line in lines if line.label == "Cost of revenue")
+    assert cost_line.value == 120_000_000
+    assert cost_line.as_row()[1] == "120.0"
+
+
+def test_common_size_line_formats_values_in_millions():
+    line = common_size.CommonSizeLine(label="Revenue", value=1_500_000_000.0, common_size=1.0)
+    assert line.as_row()[1] == "1,500.0"
+
+
+def test_extract_value_respects_unit_metadata():
+    fact = {"val": 125.0, "uom": "USDm"}
+    assert sec_client.extract_value(fact) == 125_000_000.0

@@ -1,5 +1,6 @@
 """Commonize package for generating common size financial statements."""
 from typing import TYPE_CHECKING, Any
+
 from .common_size import (
     CommonSizeLine,
     StatementNotAvailableError,
@@ -34,6 +35,7 @@ def worker_main(*args: Any, **kwargs: Any) -> None:  # pragma: no cover - thin w
     from .worker import main as _worker_main
 
     _worker_main(*args, **kwargs)
+
 
 __all__ = [
     "CommonSizeLine",

@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import sys
 from typing import Callable, Iterable, List
+
 from . import common_size, industry_cache, industry_jobs, sec_client
 
 try:
@@ -22,7 +23,13 @@ def _statement_builder(name: str) -> Callable[[dict, str], List[common_size.Comm
 
 def _render_table(lines: Iterable[common_size.CommonSizeLine]) -> str:
     rows = [line.as_row() for line in lines]
-    headers = ["Line item", "Value (USD)", "Company common size", "Industry common size"]
+    headers = [
+        "Line item",
+        "Value (USD millions)",
+        "Company common size",
+        "Industry common size",
+    ]
+
     if tabulate:
         return tabulate(rows, headers=headers, tablefmt="github")
     # Simple fallback rendering

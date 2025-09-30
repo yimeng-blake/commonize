@@ -39,10 +39,11 @@ _STATEMENT_BUILDERS: Dict[StatementType, Callable[..., List[CommonSizeLine]]] = 
 
 _DEFAULT_WEB_PEERS = 10
 
+
 def _format_currency(value: float | None) -> str:
     if value is None:
         return "-"
-    return f"{value:,.0f}"
+    return f"{value / 1_000_000:,.1f}"
 
 
 def _format_percent(value: float | None) -> str:
@@ -119,10 +120,12 @@ def _as_dataframe(lines: Iterable[CommonSizeLine]) -> pd.DataFrame:
         industry_percent = (
             None if line.industry_common_size is None else line.industry_common_size * 100
         )
+        value_millions = None if line.value is None else line.value / 1_000_000
         data.append(
             {
                 "Label": line.label,
-                "Value": line.value,
+                "Value (USD)": line.value,
+                "Value (USD millions)": value_millions,
                 "Common Size": line.common_size,
                 "Common Size (%)": percent,
                 "Industry Common Size": line.industry_common_size,
