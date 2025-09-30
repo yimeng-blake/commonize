@@ -171,7 +171,6 @@
         color: #94a3b8;
         font-size: 0.9rem;
       }
-
       .error {
         margin-top: 1.5rem;
         padding: 1rem 1.25rem;
@@ -253,7 +252,6 @@
         {% elif peer_count %}
         <p class="industry-note">Industry average derived from {{ peer_count }} peer{{ 's' if peer_count == 1 else 's' }}.</p>
         {% endif %}
-
         <table>
           <thead>
             <tr>
@@ -261,7 +259,6 @@
               <th scope="col">Value (USD)</th>
               <th scope="col">Company Common Size</th>
               <th scope="col">Industry Common Size</th>
-
             </tr>
           </thead>
           <tbody>
@@ -276,7 +273,6 @@
               <td>{{ row.value }}</td>
               <td>{{ row.percent }}</td>
               <td>{{ row.industry_percent }}</td>
-
             </tr>
             {% endfor %}
           </tbody>

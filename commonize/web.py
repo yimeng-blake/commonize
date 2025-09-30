@@ -16,14 +16,15 @@ from .common_size import (
     build_balance_sheet,
     build_income_statement,
 )
+from .industry_cache import IndustryBenchmark, load_benchmark, store_benchmark
 from .sec_client import (
     SECClientError,
     TickerInfo,
     fetch_company_facts,
     fetch_peer_company_facts,
+    get_company_industry,
     resolve_cik,
 )
-
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
@@ -49,28 +50,60 @@ def _format_percent(value: float | None) -> str:
     return f"{value:.1%}"
 
 
+def _apply_cached_industry(
+    lines: List[CommonSizeLine], benchmark: IndustryBenchmark | None
+) -> int:
+    if benchmark is None:
+        return 0
+    for index, ratio in enumerate(benchmark.ratios):
+        if index >= len(lines):
+            break
+        if ratio is None:
+            continue
+        lines[index].industry_common_size = ratio
+    return benchmark.peer_count
+
+
 def _prepare_statement(
     ticker: str, statement: StatementType, period: PeriodType
 ) -> tuple[TickerInfo, List[CommonSizeLine], dict]:
-
     builder = _STATEMENT_BUILDERS.get(statement)
     if builder is None:
         raise HTTPException(status_code=400, detail="Unsupported statement type")
 
     info = resolve_cik(ticker)
     facts = fetch_company_facts(info.cik)
-    industry_info, peer_companies, peer_facts = fetch_peer_company_facts(info.cik)
-    peers_payload = {
-        "industry": industry_info,
-        "peers": peer_companies,
-    }
-    if peer_facts:
-        lines = builder(facts, period=period, peers=peer_facts)
-    else:
-        lines = builder(facts, period=period)
+    industry_info = get_company_industry(info.cik)
+
+    lines = builder(facts, period=period)
+    expected_line_count = len(lines)
+    benchmark = load_benchmark(
+        industry_info.sic,
+        statement,
+        period,
+        expected_line_count=expected_line_count,
+    )
+    peer_count = _apply_cached_industry(lines, benchmark)
+
+    if benchmark is None:
+        industry_info, peer_companies, peer_facts = fetch_peer_company_facts(info.cik)
+        peer_count = len(peer_companies)
+        if peer_facts:
+            lines = builder(facts, period=period, peers=peer_facts)
+            ratios = [line.industry_common_size for line in lines]
+            try:
+                store_benchmark(
+                    industry_info.sic,
+                    statement,
+                    period,
+                    ratios,
+                    peer_count,
+                    line_count=len(lines),
+                )
+            except ValueError:  # pragma: no cover - guard if layouts change mid-run
+                pass
+    peers_payload = {"industry": industry_info, "peer_count": peer_count}
     return info, lines, peers_payload
-
-
 
 def _as_dataframe(lines: Iterable[CommonSizeLine]) -> pd.DataFrame:
     data: List[Dict[str, float | str | int | bool | None]] = []
@@ -79,7 +112,6 @@ def _as_dataframe(lines: Iterable[CommonSizeLine]) -> pd.DataFrame:
         industry_percent = (
             None if line.industry_common_size is None else line.industry_common_size * 100
         )
-
         data.append(
             {
                 "Label": line.label,
@@ -90,7 +122,6 @@ def _as_dataframe(lines: Iterable[CommonSizeLine]) -> pd.DataFrame:
                 "Industry Common Size (%)": industry_percent,
                 "Indent Level": line.indent,
                 "Heading": line.is_header,
-
             }
         )
     return pd.DataFrame(data)
@@ -98,7 +129,6 @@ def _as_dataframe(lines: Iterable[CommonSizeLine]) -> pd.DataFrame:
 
 def _format_lines(lines: Iterable[CommonSizeLine]) -> List[Dict[str, str | int | bool]]:
     formatted: List[Dict[str, str | int | bool]] = []
-
     for line in lines:
         formatted.append(
             {
@@ -109,7 +139,6 @@ def _format_lines(lines: Iterable[CommonSizeLine]) -> List[Dict[str, str | int |
                 "indent": line.indent,
                 "is_heading": line.is_header,
                 "is_emphasis": line.label.lower().startswith("total"),
-
             }
         )
     return formatted
@@ -139,13 +168,11 @@ def create_app() -> FastAPI:
             "period_label": "Annual" if period == "annual" else "Quarterly",
             "industry": None,
             "peer_count": 0,
-
         }
 
         if ticker:
             try:
                 info, lines, peer_payload = _prepare_statement(ticker, statement, period)
-
             except KeyError:
                 context["error"] = f"Unknown ticker symbol '{ticker}'."
             except StatementNotAvailableError as exc:  # pragma: no cover - error path
@@ -156,9 +183,7 @@ def create_app() -> FastAPI:
                 context["company"] = info
                 context["rows"] = _format_lines(lines)
                 context["industry"] = peer_payload.get("industry")
-                peers = peer_payload.get("peers", [])
-                context["peer_count"] = len(peers)
-
+                context["peer_count"] = peer_payload.get("peer_count", 0)
 
         return templates.TemplateResponse(request, "index.html", context)
 
@@ -171,7 +196,6 @@ def create_app() -> FastAPI:
     ) -> StreamingResponse:
         try:
             info, lines, _ = _prepare_statement(ticker, statement, period)
-
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         except StatementNotAvailableError as exc:

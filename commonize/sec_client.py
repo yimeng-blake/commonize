@@ -9,7 +9,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
-
 try:
     import requests
 except ImportError:  # pragma: no cover - allows unit tests without requests
@@ -24,8 +23,6 @@ _TICKER_CACHE = Path(os.environ.get("COMMONIZE_CACHE", "./.commonize-cache"))
 _TICKER_CACHE.mkdir(parents=True, exist_ok=True)
 _TICKER_CACHE_FILE = _TICKER_CACHE / "ticker_cik_map.json"
 _SIC_CACHE_FILE = _TICKER_CACHE / "cik_sic_map.json"
-
-
 
 class SECClientError(RuntimeError):
     """Raised when a request to the SEC API fails."""

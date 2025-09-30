@@ -31,8 +31,6 @@ class CommonSizeLine:
             industry_text = f"{self.industry_common_size:.1%}"
         return [self.label, value_text, percent_text, industry_text]
 
-
-
 class StatementNotAvailableError(RuntimeError):
     """Raised when the requested statement cannot be prepared."""
 
@@ -196,7 +194,6 @@ def build_income_statement(
     period: str = "annual",
     peers: Optional[Iterable[dict]] = None,
 ) -> List[CommonSizeLine]:
-
     lines = _build_lines(facts, _INCOME_LAYOUT, period=period)
     if lines[0].value is None or lines[0].value == 0:
         raise StatementNotAvailableError("Revenue not available for common size computation.")
@@ -218,7 +215,6 @@ def build_balance_sheet(
     period: str = "annual",
     peers: Optional[Iterable[dict]] = None,
 ) -> List[CommonSizeLine]:
-
     lines = _build_lines(facts, _BALANCE_LAYOUT, period=period)
     if lines[0].value is None or lines[0].value == 0:
         raise StatementNotAvailableError("Total assets not available for common size computation.")
@@ -231,5 +227,4 @@ def build_balance_sheet(
             denominator_index=0,
             period=period,
         )
-
     return lines

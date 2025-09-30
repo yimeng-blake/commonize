@@ -7,6 +7,7 @@ from .common_size import (
 )
 from .cli import main as cli_main
 from .web import create_app
+from .industry_cache import IndustryBenchmark, load_benchmark, store_benchmark
 from .sec_client import (
     SECClientError,
     IndustryInfo,
@@ -26,6 +27,9 @@ __all__ = [
     "build_income_statement",
     "cli_main",
     "create_app",
+    "IndustryBenchmark",
+    "load_benchmark",
+    "store_benchmark",
     "fetch_company_facts",
     "fetch_peer_company_facts",
     "fetch_ticker_map",
