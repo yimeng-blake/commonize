@@ -24,6 +24,7 @@ from .sec_client import (
     resolve_cik,
 )
 
+
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
 StatementType = Literal["income", "balance"]
@@ -51,6 +52,7 @@ def _format_percent(value: float | None) -> str:
 def _prepare_statement(
     ticker: str, statement: StatementType, period: PeriodType
 ) -> tuple[TickerInfo, List[CommonSizeLine], dict]:
+
     builder = _STATEMENT_BUILDERS.get(statement)
     if builder is None:
         raise HTTPException(status_code=400, detail="Unsupported statement type")
@@ -69,6 +71,7 @@ def _prepare_statement(
     return info, lines, peers_payload
 
 
+
 def _as_dataframe(lines: Iterable[CommonSizeLine]) -> pd.DataFrame:
     data: List[Dict[str, float | str | int | bool | None]] = []
     for line in lines:
@@ -76,6 +79,7 @@ def _as_dataframe(lines: Iterable[CommonSizeLine]) -> pd.DataFrame:
         industry_percent = (
             None if line.industry_common_size is None else line.industry_common_size * 100
         )
+
         data.append(
             {
                 "Label": line.label,
@@ -86,6 +90,7 @@ def _as_dataframe(lines: Iterable[CommonSizeLine]) -> pd.DataFrame:
                 "Industry Common Size (%)": industry_percent,
                 "Indent Level": line.indent,
                 "Heading": line.is_header,
+
             }
         )
     return pd.DataFrame(data)
@@ -93,6 +98,7 @@ def _as_dataframe(lines: Iterable[CommonSizeLine]) -> pd.DataFrame:
 
 def _format_lines(lines: Iterable[CommonSizeLine]) -> List[Dict[str, str | int | bool]]:
     formatted: List[Dict[str, str | int | bool]] = []
+
     for line in lines:
         formatted.append(
             {
@@ -103,6 +109,7 @@ def _format_lines(lines: Iterable[CommonSizeLine]) -> List[Dict[str, str | int |
                 "indent": line.indent,
                 "is_heading": line.is_header,
                 "is_emphasis": line.label.lower().startswith("total"),
+
             }
         )
     return formatted
@@ -132,11 +139,13 @@ def create_app() -> FastAPI:
             "period_label": "Annual" if period == "annual" else "Quarterly",
             "industry": None,
             "peer_count": 0,
+
         }
 
         if ticker:
             try:
                 info, lines, peer_payload = _prepare_statement(ticker, statement, period)
+
             except KeyError:
                 context["error"] = f"Unknown ticker symbol '{ticker}'."
             except StatementNotAvailableError as exc:  # pragma: no cover - error path
@@ -150,6 +159,7 @@ def create_app() -> FastAPI:
                 peers = peer_payload.get("peers", [])
                 context["peer_count"] = len(peers)
 
+
         return templates.TemplateResponse(request, "index.html", context)
 
     @app.get("/download/{file_format}")
@@ -161,6 +171,7 @@ def create_app() -> FastAPI:
     ) -> StreamingResponse:
         try:
             info, lines, _ = _prepare_statement(ticker, statement, period)
+
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         except StatementNotAvailableError as exc:

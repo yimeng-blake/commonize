@@ -4,7 +4,6 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from fastapi.testclient import TestClient
-
 from commonize.common_size import CommonSizeLine, StatementNotAvailableError
 from commonize.sec_client import IndustryInfo, TickerInfo
 from commonize import web
@@ -52,6 +51,7 @@ def test_index_renders_statement(monkeypatch):
     assert "Industry Common Size" in response.text
 
 
+
 def test_download_csv(monkeypatch):
     _setup_common_mocks(monkeypatch)
     client = TestClient(web.create_app())
@@ -61,6 +61,7 @@ def test_download_csv(monkeypatch):
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/csv")
     assert "Industry Common Size" in response.text
+
 
 
 def test_download_excel(monkeypatch):
@@ -85,6 +86,7 @@ def test_index_handles_statement_errors(monkeypatch):
         "income",
         lambda facts, *, period="annual", peers=None: raise_error(),
     )
+
 
     client = TestClient(web.create_app())
     response = client.get("/", params={"ticker": "demo", "statement": "income", "period": "annual"})

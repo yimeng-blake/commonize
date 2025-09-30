@@ -65,6 +65,7 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         default=0,
         help="Number of peer companies (same SIC) to include when computing industry averages.",
     )
+
     return parser.parse_args(list(argv))
 
 
@@ -85,6 +86,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             lines = builder(facts, period=args.period, peers=peer_facts)
         else:
             lines = builder(facts, period=args.period)
+
     except Exception as exc:  # pragma: no cover - CLI entry point
         print(f"Error: {exc}", file=sys.stderr)
         return 1
