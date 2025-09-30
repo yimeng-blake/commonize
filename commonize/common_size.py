@@ -14,7 +14,7 @@ class CommonSizeLine:
     common_size: Optional[float]
     indent: int = 0
     is_header: bool = False
-
+    industry_common_size: Optional[float] = None
 
     def as_row(self) -> List[str]:
         if self.value is None:
@@ -25,7 +25,12 @@ class CommonSizeLine:
             percent_text = "-"
         else:
             percent_text = f"{self.common_size:.1%}"
-        return [self.label, value_text, percent_text]
+        if self.industry_common_size is None:
+            industry_text = "-"
+        else:
+            industry_text = f"{self.industry_common_size:.1%}"
+        return [self.label, value_text, percent_text, industry_text]
+
 
 
 class StatementNotAvailableError(RuntimeError):
@@ -73,6 +78,32 @@ def _compute_common_size(lines: List[CommonSizeLine], *, denominator_index: int)
             continue
         line.common_size = line.value / denominator
 
+
+def _apply_industry_average(
+    lines: List[CommonSizeLine],
+    peer_facts: Iterable[dict],
+    *,
+    layout: Iterable[tuple],
+    denominator_index: int,
+    period: str,
+) -> None:
+    peer_ratios: List[List[Optional[float]]] = []
+    for facts in peer_facts:
+        peer_lines = _build_lines(facts, layout, period=period)
+        try:
+            _compute_common_size(peer_lines, denominator_index=denominator_index)
+        except StatementNotAvailableError:
+            continue
+        peer_ratios.append([line.common_size for line in peer_lines])
+
+    if not peer_ratios:
+        return
+
+    for index, line in enumerate(lines):
+        values = [row[index] for row in peer_ratios if row[index] is not None]
+        if not values:
+            continue
+        line.industry_common_size = sum(values) / len(values)
 
 _INCOME_LAYOUT = [
     ("Revenue", "Revenues", 0),
@@ -159,17 +190,46 @@ _BALANCE_LAYOUT = [
 ]
 
 
-def build_income_statement(facts: dict, *, period: str = "annual") -> List[CommonSizeLine]:
+def build_income_statement(
+    facts: dict,
+    *,
+    period: str = "annual",
+    peers: Optional[Iterable[dict]] = None,
+) -> List[CommonSizeLine]:
+
     lines = _build_lines(facts, _INCOME_LAYOUT, period=period)
     if lines[0].value is None or lines[0].value == 0:
         raise StatementNotAvailableError("Revenue not available for common size computation.")
     _compute_common_size(lines, denominator_index=0)
+    if peers:
+        _apply_industry_average(
+            lines,
+            peers,
+            layout=_INCOME_LAYOUT,
+            denominator_index=0,
+            period=period,
+        )
     return lines
 
 
-def build_balance_sheet(facts: dict, *, period: str = "annual") -> List[CommonSizeLine]:
+def build_balance_sheet(
+    facts: dict,
+    *,
+    period: str = "annual",
+    peers: Optional[Iterable[dict]] = None,
+) -> List[CommonSizeLine]:
+
     lines = _build_lines(facts, _BALANCE_LAYOUT, period=period)
     if lines[0].value is None or lines[0].value == 0:
         raise StatementNotAvailableError("Total assets not available for common size computation.")
     _compute_common_size(lines, denominator_index=0)
+    if peers:
+        _apply_industry_average(
+            lines,
+            peers,
+            layout=_BALANCE_LAYOUT,
+            denominator_index=0,
+            period=period,
+        )
+
     return lines

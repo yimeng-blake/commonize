@@ -9,8 +9,12 @@ from .cli import main as cli_main
 from .web import create_app
 from .sec_client import (
     SECClientError,
+    IndustryInfo,
     fetch_company_facts,
+    fetch_peer_company_facts,
     fetch_ticker_map,
+    find_industry_peers,
+    get_company_industry,
     resolve_cik,
 )
 
@@ -23,6 +27,10 @@ __all__ = [
     "cli_main",
     "create_app",
     "fetch_company_facts",
+    "fetch_peer_company_facts",
     "fetch_ticker_map",
+    "find_industry_peers",
+    "get_company_industry",
+    "IndustryInfo",
     "resolve_cik",
 ]

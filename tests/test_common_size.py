@@ -52,6 +52,37 @@ def test_build_income_statement_computes_percentages():
     assert operating_expenses.is_header is True
 
 
+def test_build_income_statement_includes_industry_average():
+    company_facts = _build_facts(
+        {
+            "Revenues": [(200.0, "10-K", "FY")],
+            "CostOfRevenue": [(80.0, "10-K", "FY")],
+            "GrossProfit": [(120.0, "10-K", "FY")],
+        }
+    )
+    peer_one = _build_facts(
+        {
+            "Revenues": [(150.0, "10-K", "FY")],
+            "CostOfRevenue": [(60.0, "10-K", "FY")],
+            "GrossProfit": [(90.0, "10-K", "FY")],
+        }
+    )
+    peer_two = _build_facts(
+        {
+            "Revenues": [(250.0, "10-K", "FY")],
+            "CostOfRevenue": [(125.0, "10-K", "FY")],
+            "GrossProfit": [(125.0, "10-K", "FY")],
+        }
+    )
+
+    lines = common_size.build_income_statement(company_facts, peers=[peer_one, peer_two])
+
+    revenue_line = lines[0]
+    assert revenue_line.industry_common_size == 1
+    cost_of_revenue = next(line for line in lines if line.label == "Cost of revenue")
+    # peer percentages: 0.4 and 0.5 -> average 0.45
+    assert round(cost_of_revenue.industry_common_size or 0, 4) == 0.45
+
 
 def test_missing_denominator_raises():
     facts = _build_facts({"Revenues": [(0.0, "10-K", "FY")]})

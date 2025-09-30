@@ -16,7 +16,14 @@ from .common_size import (
     build_balance_sheet,
     build_income_statement,
 )
-from .sec_client import SECClientError, TickerInfo, fetch_company_facts, resolve_cik
+from .sec_client import (
+    SECClientError,
+    TickerInfo,
+    fetch_company_facts,
+    fetch_peer_company_facts,
+    resolve_cik,
+)
+
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
@@ -44,28 +51,43 @@ def _format_percent(value: float | None) -> str:
 
 def _prepare_statement(
     ticker: str, statement: StatementType, period: PeriodType
-) -> tuple[TickerInfo, List[CommonSizeLine]]:
+) -> tuple[TickerInfo, List[CommonSizeLine], dict]:
+
     builder = _STATEMENT_BUILDERS.get(statement)
     if builder is None:
         raise HTTPException(status_code=400, detail="Unsupported statement type")
 
     info = resolve_cik(ticker)
     facts = fetch_company_facts(info.cik)
-    lines = builder(facts, period=period)
-    return info, lines
+    industry_info, peer_companies, peer_facts = fetch_peer_company_facts(info.cik)
+    peers_payload = {
+        "industry": industry_info,
+        "peers": peer_companies,
+    }
+    if peer_facts:
+        lines = builder(facts, period=period, peers=peer_facts)
+    else:
+        lines = builder(facts, period=period)
+    return info, lines, peers_payload
+
 
 
 def _as_dataframe(lines: Iterable[CommonSizeLine]) -> pd.DataFrame:
     data: List[Dict[str, float | str | int | bool | None]] = []
-
     for line in lines:
         percent = None if line.common_size is None else line.common_size * 100
+        industry_percent = (
+            None if line.industry_common_size is None else line.industry_common_size * 100
+        )
+
         data.append(
             {
                 "Label": line.label,
                 "Value": line.value,
                 "Common Size": line.common_size,
                 "Common Size (%)": percent,
+                "Industry Common Size": line.industry_common_size,
+                "Industry Common Size (%)": industry_percent,
                 "Indent Level": line.indent,
                 "Heading": line.is_header,
 
@@ -83,6 +105,7 @@ def _format_lines(lines: Iterable[CommonSizeLine]) -> List[Dict[str, str | int |
                 "label": line.label,
                 "value": _format_currency(line.value),
                 "percent": _format_percent(line.common_size),
+                "industry_percent": _format_percent(line.industry_common_size),
                 "indent": line.indent,
                 "is_heading": line.is_header,
                 "is_emphasis": line.label.lower().startswith("total"),
@@ -114,11 +137,15 @@ def create_app() -> FastAPI:
             "error": None,
             "statement_label": "Income Statement" if statement == "income" else "Balance Sheet",
             "period_label": "Annual" if period == "annual" else "Quarterly",
+            "industry": None,
+            "peer_count": 0,
+
         }
 
         if ticker:
             try:
-                info, lines = _prepare_statement(ticker, statement, period)
+                info, lines, peer_payload = _prepare_statement(ticker, statement, period)
+
             except KeyError:
                 context["error"] = f"Unknown ticker symbol '{ticker}'."
             except StatementNotAvailableError as exc:  # pragma: no cover - error path
@@ -128,6 +155,10 @@ def create_app() -> FastAPI:
             else:
                 context["company"] = info
                 context["rows"] = _format_lines(lines)
+                context["industry"] = peer_payload.get("industry")
+                peers = peer_payload.get("peers", [])
+                context["peer_count"] = len(peers)
+
 
         return templates.TemplateResponse(request, "index.html", context)
 
@@ -139,7 +170,8 @@ def create_app() -> FastAPI:
         period: PeriodType = Query("annual"),
     ) -> StreamingResponse:
         try:
-            info, lines = _prepare_statement(ticker, statement, period)
+            info, lines, _ = _prepare_statement(ticker, statement, period)
+
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         except StatementNotAvailableError as exc:

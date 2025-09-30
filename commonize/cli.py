@@ -23,17 +23,19 @@ def _statement_builder(name: str) -> Callable[[dict, str], List[common_size.Comm
 
 def _render_table(lines: Iterable[common_size.CommonSizeLine]) -> str:
     rows = [line.as_row() for line in lines]
-    headers = ["Line item", "Value (USD)", "Common size"]
+    headers = ["Line item", "Value (USD)", "Company common size", "Industry common size"]
     if tabulate:
         return tabulate(rows, headers=headers, tablefmt="github")
     # Simple fallback rendering
-    column_widths = [max(len(str(row[i])) for row in rows + [headers]) for i in range(3)]
+    column_widths = [max(len(str(row[i])) for row in rows + [headers]) for i in range(len(headers))]
     lines_out = [
         " | ".join(h.ljust(column_widths[idx]) for idx, h in enumerate(headers)),
-        "-+-".join("-" * column_widths[idx] for idx in range(3)),
+        "-+-".join("-" * column_widths[idx] for idx in range(len(headers))),
     ]
     for row in rows:
-        lines_out.append(" | ".join(str(cell).ljust(column_widths[idx]) for idx, cell in enumerate(row)))
+        lines_out.append(
+            " | ".join(str(cell).ljust(column_widths[idx]) for idx, cell in enumerate(row))
+        )
     return "\n".join(lines_out)
 
 
@@ -57,6 +59,13 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         action="store_true",
         help="Force refresh of cached ticker metadata.",
     )
+    parser.add_argument(
+        "--industry-peers",
+        type=int,
+        default=0,
+        help="Number of peer companies (same SIC) to include when computing industry averages.",
+    )
+
     return parser.parse_args(list(argv))
 
 
@@ -65,8 +74,19 @@ def main(argv: Iterable[str] | None = None) -> int:
     try:
         ticker_info = sec_client.resolve_cik(args.ticker, force_refresh=args.force_refresh)
         facts = sec_client.fetch_company_facts(ticker_info.cik)
+        peer_facts = None
+        if args.industry_peers > 0:
+            _, _, peer_fact_list = sec_client.fetch_peer_company_facts(
+                ticker_info.cik, max_companies=args.industry_peers
+            )
+            if peer_fact_list:
+                peer_facts = peer_fact_list
         builder = _statement_builder(args.statement)
-        lines = builder(facts, period=args.period)
+        if peer_facts:
+            lines = builder(facts, period=args.period, peers=peer_facts)
+        else:
+            lines = builder(facts, period=args.period)
+
     except Exception as exc:  # pragma: no cover - CLI entry point
         print(f"Error: {exc}", file=sys.stderr)
         return 1

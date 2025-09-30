@@ -160,12 +160,18 @@
       tr.emphasis td.line-label {
         color: #f8fafc;
       }
-
       td:nth-child(2),
-      td:nth-child(3) {
+      td:nth-child(3),
+      td:nth-child(4) {
         text-align: right;
         font-variant-numeric: tabular-nums;
       }
+      .industry-note {
+        margin-top: 0.5rem;
+        color: #94a3b8;
+        font-size: 0.9rem;
+      }
+
       .error {
         margin-top: 1.5rem;
         padding: 1rem 1.25rem;
@@ -239,12 +245,23 @@
           </h2>
           <span>{{ statement_label }} · {{ period_label }}</span>
         </div>
+        {% if industry and (industry.sic or industry.description) %}
+        <p class="industry-note">
+          Industry average{% if industry.description %}: {{ industry.description }}{% endif %}{% if industry.sic %} (SIC {{ industry.sic }}){% endif %}
+          {% if peer_count %}· derived from {{ peer_count }} peer{{ 's' if peer_count == 1 else 's' }}{% endif %}
+        </p>
+        {% elif peer_count %}
+        <p class="industry-note">Industry average derived from {{ peer_count }} peer{{ 's' if peer_count == 1 else 's' }}.</p>
+        {% endif %}
+
         <table>
           <thead>
             <tr>
               <th scope="col">Line Item</th>
               <th scope="col">Value (USD)</th>
-              <th scope="col">Common Size</th>
+              <th scope="col">Company Common Size</th>
+              <th scope="col">Industry Common Size</th>
+
             </tr>
           </thead>
           <tbody>
@@ -256,9 +273,10 @@
               >
                 {{ row.label }}
               </td>
-
               <td>{{ row.value }}</td>
               <td>{{ row.percent }}</td>
+              <td>{{ row.industry_percent }}</td>
+
             </tr>
             {% endfor %}
           </tbody>

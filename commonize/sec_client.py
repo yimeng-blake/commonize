@@ -7,7 +7,8 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Iterable, Optional
+from typing import Dict, Iterable, List, Optional, Tuple
+
 
 try:
     import requests
@@ -22,6 +23,8 @@ _DEFAULT_USER_AGENT = os.environ.get(
 _TICKER_CACHE = Path(os.environ.get("COMMONIZE_CACHE", "./.commonize-cache"))
 _TICKER_CACHE.mkdir(parents=True, exist_ok=True)
 _TICKER_CACHE_FILE = _TICKER_CACHE / "ticker_cik_map.json"
+_SIC_CACHE_FILE = _TICKER_CACHE / "cik_sic_map.json"
+
 
 
 class SECClientError(RuntimeError):
@@ -37,6 +40,34 @@ class TickerInfo:
     @property
     def cik(self) -> str:
         return self.cik_str.zfill(10)
+
+
+@dataclass
+class IndustryInfo:
+    sic: Optional[str]
+    description: Optional[str]
+
+
+_sic_cache: Optional[Dict[str, Dict[str, Optional[str]]]] = None
+
+
+def _load_sic_cache() -> Dict[str, Dict[str, Optional[str]]]:
+    global _sic_cache
+    if _sic_cache is not None:
+        return _sic_cache
+    if not _SIC_CACHE_FILE.exists():
+        _sic_cache = {}
+        return _sic_cache
+    with _SIC_CACHE_FILE.open("r", encoding="utf-8") as fh:
+        _sic_cache = json.load(fh)
+    return _sic_cache
+
+
+def _save_sic_cache(data: Dict[str, Dict[str, Optional[str]]]) -> None:
+    global _sic_cache
+    _sic_cache = data
+    with _SIC_CACHE_FILE.open("w", encoding="utf-8") as fh:
+        json.dump(data, fh)
 
 
 def _request_json(url: str, *, sleep: float = 0.2) -> dict:
@@ -100,6 +131,87 @@ def fetch_company_facts(cik: str) -> dict:
     info = resolve_cik(cik)
     url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{info.cik}.json"
     return _request_json(url, sleep=0.4)
+
+
+def fetch_company_submissions(cik: str) -> dict:
+    info = resolve_cik(cik)
+    url = f"https://data.sec.gov/submissions/CIK{info.cik}.json"
+    return _request_json(url, sleep=0.4)
+
+
+def get_company_industry(cik: str) -> IndustryInfo:
+    info = resolve_cik(cik)
+    cache = _load_sic_cache()
+    key = info.cik
+    record = cache.get(key)
+    if record is None:
+        submissions = fetch_company_submissions(info.cik)
+        record = {
+            "sic": submissions.get("sic"),
+            "sic_description": submissions.get("sicDescription"),
+        }
+        cache[key] = record
+        _save_sic_cache(cache)
+    return IndustryInfo(sic=record.get("sic"), description=record.get("sic_description"))
+
+
+def find_industry_peers(
+    cik: str,
+    *,
+    max_companies: int = 5,
+) -> Tuple[IndustryInfo, List[TickerInfo]]:
+    subject = resolve_cik(cik)
+    industry = get_company_industry(subject.cik)
+    if industry.sic is None:
+        return industry, []
+
+    mapping = fetch_ticker_map()
+    cache = _load_sic_cache()
+    peers: List[TickerInfo] = []
+    updated = False
+
+    for candidate in mapping.values():
+        if candidate.cik == subject.cik:
+            continue
+        record = cache.get(candidate.cik)
+        if record is None:
+            try:
+                submissions = fetch_company_submissions(candidate.cik)
+            except SECClientError:
+                continue
+            record = {
+                "sic": submissions.get("sic"),
+                "sic_description": submissions.get("sicDescription"),
+            }
+            cache[candidate.cik] = record
+            updated = True
+        if record.get("sic") == industry.sic:
+            peers.append(candidate)
+        if len(peers) >= max_companies:
+            break
+
+    if updated:
+        _save_sic_cache(cache)
+
+    return industry, peers
+
+
+def fetch_peer_company_facts(
+    cik: str,
+    *,
+    max_companies: int = 5,
+) -> Tuple[IndustryInfo, List[TickerInfo], List[dict]]:
+    industry, peers = find_industry_peers(cik, max_companies=max_companies)
+    peer_facts: List[dict] = []
+    successful_peers: List[TickerInfo] = []
+    for peer in peers:
+        try:
+            facts = fetch_company_facts(peer.cik)
+        except SECClientError:
+            continue
+        peer_facts.append(facts)
+        successful_peers.append(peer)
+    return industry, successful_peers, peer_facts
 
 
 def _iter_facts_for_tag(facts: dict, tag: str) -> Iterable[dict]:
