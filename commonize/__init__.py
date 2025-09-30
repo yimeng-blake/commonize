@@ -6,6 +6,8 @@ from .common_size import (
     build_income_statement,
 )
 from .cli import main as cli_main
+from .web import create_app
+
 from .sec_client import (
     SECClientError,
     fetch_company_facts,
@@ -20,6 +22,8 @@ __all__ = [
     "build_balance_sheet",
     "build_income_statement",
     "cli_main",
+    "create_app",
+
     "fetch_company_facts",
     "fetch_ticker_map",
     "resolve_cik",
