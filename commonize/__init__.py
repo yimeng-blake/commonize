@@ -7,6 +7,7 @@ from .common_size import (
 )
 from .cli import main as cli_main
 from .web import create_app
+
 from .sec_client import (
     SECClientError,
     fetch_company_facts,
@@ -22,6 +23,7 @@ __all__ = [
     "build_income_statement",
     "cli_main",
     "create_app",
+
     "fetch_company_facts",
     "fetch_ticker_map",
     "resolve_cik",

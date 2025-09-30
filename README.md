@@ -3,6 +3,7 @@
 Commonize turns U.S. Securities and Exchange Commission (SEC) filings into common size financial statements. The project ships
 with both a command line interface and a modern FastAPI web experience that renders statements, complete with CSV and Excel
 export options.
+Commonize is a command line tool that retrieves public financial statement data from the U.S. Securities and Exchange Commission (SEC) and presents it as a common size statement. The project is designed to act as the foundation for a future web application that provides the same functionality.
 
 ## Features
 
@@ -53,6 +54,11 @@ interface renders the common size view and exposes download buttons for CSV and 
 1. **Local CLI** – Fetch SEC data and render common size statements in the terminal.
 2. **Interactive web experience (current stage)** – Serve the statements through FastAPI with downloadable exports.
 3. **Deployment** – Package and deploy the application to a managed cloud platform.
+## Development roadmap
+
+1. **Local CLI (current stage)** – Fetch SEC data and render common size statements in the terminal.
+2. **API service** – Expose the functionality through a lightweight REST API.
+3. **Web application** – Build a front-end that calls the API and deploy both components to the cloud.
 4. **Automation & monitoring** – Add background jobs, logging, and observability to ensure reliability.
 
 Contributions and ideas are welcome!
