@@ -140,6 +140,27 @@
       tbody tr:last-child td {
         border-bottom: none;
       }
+      td.line-label {
+        --indent-level: 0;
+        padding-left: calc(1rem + var(--indent-level) * 1.5rem);
+        font-weight: 500;
+        transition: color 0.2s ease;
+      }
+      td.line-label.heading {
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 600;
+        font-size: 0.75rem;
+        color: #94a3b8;
+      }
+      tr.emphasis td {
+        font-weight: 600;
+        color: #f8fafc;
+      }
+      tr.emphasis td.line-label {
+        color: #f8fafc;
+      }
+
       td:nth-child(2),
       td:nth-child(3) {
         text-align: right;
@@ -228,8 +249,14 @@
           </thead>
           <tbody>
             {% for row in rows %}
-            <tr>
-              <td>{{ row.label }}</td>
+            <tr{% if row.is_emphasis %} class="emphasis"{% endif %}>
+              <td
+                class="line-label{% if row.is_heading %} heading{% endif %}"
+                style="--indent-level: {{ row.indent }}"
+              >
+                {{ row.label }}
+              </td>
+
               <td>{{ row.value }}</td>
               <td>{{ row.percent }}</td>
             </tr>

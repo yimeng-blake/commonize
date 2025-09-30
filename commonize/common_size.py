@@ -12,6 +12,9 @@ class CommonSizeLine:
     label: str
     value: Optional[float]
     common_size: Optional[float]
+    indent: int = 0
+    is_header: bool = False
+
 
     def as_row(self) -> List[str]:
         if self.value is None:
@@ -31,10 +34,33 @@ class StatementNotAvailableError(RuntimeError):
 
 def _build_lines(facts: dict, layout: Iterable[tuple], *, period: str) -> List[CommonSizeLine]:
     lines: List[CommonSizeLine] = []
-    for label, tag in layout:
-        fact = sec_client.select_fact(facts, tag, period=period)
-        value = sec_client.extract_value(fact)
-        lines.append(CommonSizeLine(label=label, value=value, common_size=None))
+    for item in layout:
+        if len(item) == 2:
+            label, tag = item
+            indent = 0
+            is_header = tag is None
+        elif len(item) == 3:
+            label, tag, indent = item
+            is_header = tag is None
+        elif len(item) == 4:
+            label, tag, indent, is_header = item
+        else:  # pragma: no cover - defensive guard
+            raise ValueError("Layout entries must have 2 to 4 elements")
+
+        value = None
+        if tag:
+            fact = sec_client.select_fact(facts, tag, period=period)
+            value = sec_client.extract_value(fact)
+
+        lines.append(
+            CommonSizeLine(
+                label=label,
+                value=value,
+                common_size=None,
+                indent=indent,
+                is_header=is_header,
+            )
+        )
     return lines
 
 
@@ -49,22 +75,87 @@ def _compute_common_size(lines: List[CommonSizeLine], *, denominator_index: int)
 
 
 _INCOME_LAYOUT = [
-    ("Revenue", "Revenues"),
-    ("Cost of revenue", "CostOfRevenue"),
-    ("Gross profit", "GrossProfit"),
-    ("Research & development", "ResearchAndDevelopmentExpense"),
-    ("Selling, general & administrative", "SellingGeneralAndAdministrativeExpense"),
-    ("Operating income", "OperatingIncomeLoss"),
-    ("Net income", "NetIncomeLoss"),
+    ("Revenue", "Revenues", 0),
+    ("Cost of revenue", "CostOfRevenue", 1),
+    ("Gross profit", "GrossProfit", 0),
+    ("Operating expenses", None, 0, True),
+    ("Research & development", "ResearchAndDevelopmentExpense", 1),
+    (
+        "Selling, general & administrative",
+        "SellingGeneralAndAdministrativeExpense",
+        1,
+    ),
+    ("Other operating expenses", "OtherOperatingExpenses", 1),
+    ("Total operating expenses", "OperatingExpenses", 0),
+    ("Operating income", "OperatingIncomeLoss", 0),
+    ("Interest expense", "InterestExpense", 1),
+    ("Other income (expense)", "OtherNonoperatingIncomeExpense", 1),
+    (
+        "Income before taxes",
+        "IncomeLossFromContinuingOperationsBeforeIncomeTaxes",
+        0,
+    ),
+    ("Income tax expense (benefit)", "IncomeTaxExpenseBenefit", 1),
+    ("Net income", "NetIncomeLoss", 0),
 ]
 
 _BALANCE_LAYOUT = [
-    ("Total assets", "Assets"),
-    ("Cash and cash equivalents", "CashAndCashEquivalentsAtCarryingValue"),
-    ("Accounts receivable", "AccountsReceivableNetCurrent"),
-    ("Inventory", "InventoryNet"),
-    ("Total liabilities", "Liabilities"),
-    ("Total equity", "StockholdersEquity"),
+    ("Total assets", "Assets", 0),
+    ("Current assets", None, 0, True),
+    (
+        "Cash and cash equivalents",
+        "CashAndCashEquivalentsAtCarryingValue",
+        1,
+    ),
+    ("Short-term investments", "MarketableSecuritiesCurrent", 1),
+    ("Accounts receivable", "AccountsReceivableNetCurrent", 1),
+    ("Inventory", "InventoryNet", 1),
+    ("Other current assets", "OtherAssetsCurrent", 1),
+    ("Total current assets", "AssetsCurrent", 0),
+    ("Non-current assets", None, 0, True),
+    (
+        "Property, plant and equipment, net",
+        "PropertyPlantAndEquipmentNet",
+        1,
+    ),
+    (
+        "Operating lease right-of-use assets",
+        "OperatingLeaseRightOfUseAsset",
+        1,
+    ),
+    ("Goodwill", "Goodwill", 1),
+    ("Intangible assets, net", "IntangibleAssetsNetExcludingGoodwill", 1),
+    ("Other non-current assets", "OtherAssetsNoncurrent", 1),
+    ("Total non-current assets", "AssetsNoncurrent", 0),
+    ("Liabilities and equity", None, 0, True),
+    ("Current liabilities", None, 0, True),
+    ("Accounts payable", "AccountsPayableCurrent", 1),
+    ("Accrued liabilities", "AccruedLiabilitiesCurrent", 1),
+    ("Short-term debt", "ShortTermBorrowings", 1),
+    ("Other current liabilities", "OtherLiabilitiesCurrent", 1),
+    ("Total current liabilities", "LiabilitiesCurrent", 0),
+    ("Non-current liabilities", None, 0, True),
+    ("Long-term debt", "LongTermDebtNoncurrent", 1),
+    ("Operating lease liabilities", "OperatingLeaseLiabilityNoncurrent", 1),
+    ("Other non-current liabilities", "OtherLiabilitiesNoncurrent", 1),
+    ("Total non-current liabilities", "LiabilitiesNoncurrent", 0),
+    ("Total liabilities", "Liabilities", 0),
+    ("Stockholders' equity", None, 0, True),
+    ("Common stock", "CommonStockValue", 1),
+    ("Additional paid-in capital", "AdditionalPaidInCapital", 1),
+    (
+        "Retained earnings",
+        "RetainedEarningsAccumulatedDeficit",
+        1,
+    ),
+    (
+        "Accumulated other comprehensive income (loss)",
+        "AccumulatedOtherComprehensiveIncomeLossNetOfTax",
+        1,
+    ),
+    ("Treasury stock", "TreasuryStockValue", 1),
+    ("Total stockholders' equity", "StockholdersEquity", 0),
+    ("Total liabilities and equity", "LiabilitiesAndStockholdersEquity", 0),
 ]
 
 
