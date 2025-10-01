@@ -36,7 +36,8 @@ def test_build_income_statement_computes_percentages():
             "CostOfRevenue": [(40.0, "10-K", "FY")],
             "GrossProfit": [(60.0, "10-K", "FY")],
             "ResearchAndDevelopmentExpense": [(10.0, "10-K", "FY")],
-            "SellingGeneralAndAdministrativeExpense": [(20.0, "10-K", "FY")],
+            "SalesAndMarketingExpense": [(12.0, "10-K", "FY")],
+            "GeneralAndAdministrativeExpense": [(8.0, "10-K", "FY")],
             "OperatingIncomeLoss": [(30.0, "10-K", "FY")],
             "NetIncomeLoss": [(25.0, "10-K", "FY")],
         }
@@ -50,6 +51,8 @@ def test_build_income_statement_computes_percentages():
     assert cost_of_revenue.indent == 1
     operating_expenses = next(line for line in lines if line.label == "Operating expenses")
     assert operating_expenses.is_header is True
+    assert any(line.label == "Sales & marketing" for line in lines)
+    assert any(line.label == "General & administrative" for line in lines)
 
 
 def test_build_income_statement_includes_industry_average():
@@ -233,11 +236,24 @@ def test_income_statement_derives_missing_values():
                         ]
                     }
                 },
-                "SellingGeneralAndAdministrativeExpense": {
+                "SalesAndMarketingExpense": {
                     "units": {
                         "USD": [
                             {
-                                "val": 10.0,
+                                "val": 7.0,
+                                "end": "2023-12-31",
+                                "form": "10-K",
+                                "fp": "FY",
+                                "accn": "0001",
+                            }
+                        ]
+                    }
+                },
+                "GeneralAndAdministrativeExpense": {
+                    "units": {
+                        "USD": [
+                            {
+                                "val": 3.0,
                                 "end": "2023-12-31",
                                 "form": "10-K",
                                 "fp": "FY",

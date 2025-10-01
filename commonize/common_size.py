@@ -184,7 +184,8 @@ def _apply_income_derivations(lines: List[CommonSizeLine]) -> None:
     gross = lookup.get("Gross profit")
     revenue = lookup.get("Revenue")
     rd = lookup.get("Research & development")
-    sgna = lookup.get("Selling, general & administrative")
+    sales_marketing = lookup.get("Sales & marketing")
+    general_admin = lookup.get("General & administrative")
     other_ops = lookup.get("Other operating expenses")
     total_ops = lookup.get("Total operating expenses")
     op_income = lookup.get("Operating income")
@@ -195,7 +196,9 @@ def _apply_income_derivations(lines: List[CommonSizeLine]) -> None:
     net_income = lookup.get("Net income")
 
     component_values = [
-        line.value for line in (rd, sgna, other_ops) if line and line.value is not None
+        line.value
+        for line in (rd, sales_marketing, general_admin, other_ops)
+        if line and line.value is not None
     ]
     if total_ops and component_values:
         derived_total = sum(component_values)
@@ -274,8 +277,27 @@ _INCOME_LAYOUT = [
         1,
     ),
     (
-        "Selling, general & administrative",
-        ("SellingGeneralAndAdministrativeExpense", "SellingGeneralAndAdministrativeExpenses"),
+        "Sales & marketing",
+        (
+            "SalesAndMarketingExpense",
+            "SalesAndMarketingExpenses",
+            "SellingAndMarketingExpense",
+            "SellingAndMarketingExpenses",
+            "SalesMarketingExpense",
+            "SalesMarketingExpenses",
+        ),
+        1,
+    ),
+    (
+        "General & administrative",
+        (
+            "GeneralAndAdministrativeExpense",
+            "GeneralAndAdministrativeExpenses",
+            "GeneralAndAdministrativeExpenseNet",
+            "SellingGeneralAndAdministrativeExpense",
+            "SellingGeneralAndAdministrativeExpenses",
+            "SellingGeneralAndAdministrative",
+        ),
         1,
     ),
     (
