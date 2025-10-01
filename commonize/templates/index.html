@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Commonize</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      }
+      body {
+        margin: 0;
+        background: linear-gradient(180deg, #0f172a, #1e293b);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        color: #e2e8f0;
+      }
+      .card {
+        width: min(960px, 100%);
+        background: rgba(15, 23, 42, 0.92);
+        backdrop-filter: blur(14px);
+        border-radius: 24px;
+        padding: 32px 40px;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+      }
+      h1 {
+        margin: 0 0 1.25rem 0;
+        font-size: clamp(2rem, 3vw, 3rem);
+        font-weight: 700;
+        letter-spacing: -0.03em;
+      }
+      p.subtitle {
+        margin: 0 0 2rem 0;
+        color: #cbd5f5;
+        font-size: 1rem;
+      }
+      form {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        align-items: end;
+      }
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        color: #cbd5f5;
+      }
+      input,
+      select {
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: rgba(15, 23, 42, 0.65);
+        color: inherit;
+        font-size: 1rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: #38bdf8;
+        box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+      }
+      button {
+        padding: 0.85rem 1.5rem;
+        border-radius: 999px;
+        border: none;
+        background: linear-gradient(135deg, #38bdf8, #818cf8);
+        color: #0f172a;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 24px rgba(56, 189, 248, 0.35);
+      }
+      .results {
+        margin-top: 2.5rem;
+      }
+      .header {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-bottom: 1.25rem;
+      }
+      .header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+      }
+      .header span {
+        color: #94a3b8;
+        font-size: 0.95rem;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+      }
+      .actions a {
+        text-decoration: none;
+        padding: 0.6rem 1.2rem;
+        border-radius: 12px;
+        background: rgba(148, 163, 184, 0.12);
+        color: #38bdf8;
+        font-weight: 600;
+        transition: background 0.2s ease;
+      }
+      .actions a:hover {
+        background: rgba(148, 163, 184, 0.24);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: rgba(15, 23, 42, 0.6);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+      thead {
+        background: rgba(148, 163, 184, 0.08);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.8rem;
+      }
+      th,
+      td {
+        padding: 0.85rem 1rem;
+        text-align: left;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+      }
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+      td.line-label {
+        --indent-level: 0;
+        padding-left: calc(1rem + var(--indent-level) * 1.5rem);
+        font-weight: 500;
+        transition: color 0.2s ease;
+      }
+      td.line-label.heading {
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 600;
+        font-size: 0.75rem;
+        color: #94a3b8;
+      }
+      tr.emphasis td {
+        font-weight: 600;
+        color: #f8fafc;
+      }
+      tr.emphasis td.line-label {
+        color: #f8fafc;
+      }
+      td:nth-child(2),
+      td:nth-child(3),
+      td:nth-child(4) {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .industry-note {
+        margin-top: 0.5rem;
+        color: #94a3b8;
+        font-size: 0.9rem;
+      }
+      .industry-note.pending {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        color: #38bdf8;
+      }
+      .error {
+        margin-top: 1.5rem;
+        padding: 1rem 1.25rem;
+        border-radius: 12px;
+        background: rgba(248, 113, 113, 0.12);
+        color: #fecaca;
+        border: 1px solid rgba(248, 113, 113, 0.4);
+      }
+      @media (max-width: 640px) {
+        .card {
+          padding: 24px;
+        }
+        form {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>Commonize</h1>
+      <p class="subtitle">
+        Transform SEC filings into common size statements for quick, visual analysis.
+      </p>
+      <form method="get">
+        <label>
+          Ticker or CIK
+          <input
+            type="text"
+            name="ticker"
+            placeholder="e.g. AAPL"
+            value="{{ ticker }}"
+            required
+            aria-label="Ticker symbol"
+          />
+        </label>
+        <label>
+          Statement
+          <select name="statement" aria-label="Statement">
+            <option value="income" {% if statement == "income" %}selected{% endif %}>
+              Income Statement
+            </option>
+            <option value="balance" {% if statement == "balance" %}selected{% endif %}>
+              Balance Sheet
+            </option>
+          </select>
+        </label>
+        <label>
+          Period
+          <select name="period" aria-label="Period">
+            <option value="annual" {% if period == "annual" %}selected{% endif %}>
+              Annual
+            </option>
+            <option value="quarterly" {% if period == "quarterly" %}selected{% endif %}>
+              Quarterly
+            </option>
+          </select>
+        </label>
+        <button type="submit">Generate</button>
+      </form>
+
+      {% if error %}
+      <div class="error" role="alert">{{ error }}</div>
+      {% endif %}
+
+      {% if rows %}
+      <section class="results" aria-live="polite">
+        <div class="header">
+          <h2>
+            {{ company.title or company.ticker }}
+          </h2>
+          <span>{{ statement_label }} · {{ period_label }}</span>
+        </div>
+        {% if industry and (industry.sic or industry.description) %}
+        <p class="industry-note">
+          Industry average{% if industry.description %}: {{ industry.description }}{% endif %}{% if industry.sic %} (SIC {{ industry.sic }}){% endif %}
+          {% if peer_count %}· derived from {{ peer_count }} peer{{ 's' if peer_count == 1 else 's' }}{% endif %}
+        </p>
+        {% elif peer_count %}
+        <p class="industry-note">Industry average derived from {{ peer_count }} peer{{ 's' if peer_count == 1 else 's' }}.</p>
+        {% endif %}
+        <p class="industry-note">All monetary amounts are presented in USD millions.</p>
+        {% if peer_count == 0 and peers.job and peers.job.status != 'succeeded' %}
+        <p class="industry-note pending" role="status">
+          ⏳ Industry benchmark queued — refresh in a few moments to view the averages.
+        </p>
+        {% endif %}
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Line Item</th>
+              <th scope="col">Value (USD millions)</th>
+              <th scope="col">Company Common Size</th>
+              <th scope="col">Industry Common Size</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr{% if row.is_emphasis %} class="emphasis"{% endif %}>
+              <td
+                class="line-label{% if row.is_heading %} heading{% endif %}"
+                style="--indent-level: {{ row.indent }}"
+              >
+                {{ row.label }}
+              </td>
+              <td>{{ row.value }}</td>
+              <td>{{ row.percent }}</td>
+              <td>{{ row.industry_percent }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div class="actions">
+          <a
+            href="{{ request.url_for('download', file_format='csv') }}?ticker={{ ticker }}&statement={{ statement }}&period={{ period }}"
+            >Download CSV</a
+          >
+          <a
+            href="{{ request.url_for('download', file_format='xlsx') }}?ticker={{ ticker }}&statement={{ statement }}&period={{ period }}"
+            >Download Excel</a
+          >
+        </div>
+      </section>
+      {% endif %}
+    </main>
+  </body>
+</html>
