@@ -113,7 +113,6 @@ def _prepare_statement(
     }
     return info, lines, peers_payload
 
-
 def _as_dataframe(lines: Iterable[CommonSizeLine]) -> pd.DataFrame:
     data: List[Dict[str, float | str | int | bool | None]] = []
     for line in lines:

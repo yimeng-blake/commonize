@@ -329,3 +329,4 @@ def test_income_statement_respects_reference_context():
     lines = common_size.build_income_statement(facts)
     cost_line = next(line for line in lines if line.label == "Cost of revenue")
     assert cost_line.value == 260.0
+

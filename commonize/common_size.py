@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Iterable, List, Optional, Sequence, Tuple, Union
 
+
 from . import sec_client
 
 
@@ -27,6 +28,7 @@ class CommonSizeLine:
             value_text = "-"
         else:
             value_text = f"{value_millions:,.1f}"
+
         if self.common_size is None:
             percent_text = "-"
         else:
@@ -163,7 +165,6 @@ def _apply_industry_average(
             continue
         line.industry_common_size = sum(values) / len(values)
 
-
 def _apply_income_derivations(lines: List[CommonSizeLine]) -> None:
     lookup = {line.label: line for line in lines}
 
@@ -243,7 +244,6 @@ def _apply_balance_derivations(lines: List[CommonSizeLine]) -> None:
     if total_assets and total_assets.value is not None and total_liab_equity:
         if total_liab_equity.value is None:
             total_liab_equity.value = total_assets.value
-
 
 _INCOME_LAYOUT = [
     (

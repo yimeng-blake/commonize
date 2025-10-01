@@ -24,7 +24,6 @@ _TICKER_CACHE.mkdir(parents=True, exist_ok=True)
 _TICKER_CACHE_FILE = _TICKER_CACHE / "ticker_cik_map.json"
 _SIC_CACHE_FILE = _TICKER_CACHE / "cik_sic_map.json"
 
-
 class SECClientError(RuntimeError):
     """Raised when a request to the SEC API fails."""
 
@@ -173,7 +172,6 @@ def find_industry_peers(
         candidate_pool = max(max_companies * 5, max_companies + 5, 20)
     if max_companies <= 0:
         candidate_pool = 0
-
     for candidate in mapping.values():
         if candidate.cik == subject.cik:
             continue
@@ -320,3 +318,4 @@ def extract_value(fact: Optional[dict]) -> Optional[float]:
         return None
     multiplier = _unit_multiplier(fact.get("uom"))
     return value * multiplier
+
