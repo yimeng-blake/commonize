@@ -156,6 +156,7 @@ def find_industry_peers(
     cik: str,
     *,
     max_companies: int = 5,
+    candidate_pool: Optional[int] = None,
 ) -> Tuple[IndustryInfo, List[TickerInfo]]:
     subject = resolve_cik(cik)
     industry = get_company_industry(subject.cik)
@@ -167,6 +168,10 @@ def find_industry_peers(
     peers: List[TickerInfo] = []
     updated = False
 
+    if candidate_pool is None:
+        candidate_pool = max(max_companies * 5, max_companies + 5, 20)
+    if max_companies <= 0:
+        candidate_pool = 0
     for candidate in mapping.values():
         if candidate.cik == subject.cik:
             continue
@@ -184,7 +189,7 @@ def find_industry_peers(
             updated = True
         if record.get("sic") == industry.sic:
             peers.append(candidate)
-        if len(peers) >= max_companies:
+        if candidate_pool and len(peers) >= candidate_pool:
             break
 
     if updated:
@@ -198,10 +203,20 @@ def fetch_peer_company_facts(
     *,
     max_companies: int = 5,
 ) -> Tuple[IndustryInfo, List[TickerInfo], List[dict]]:
-    industry, peers = find_industry_peers(cik, max_companies=max_companies)
+    if max_companies <= 0:
+        industry, _ = find_industry_peers(cik, max_companies=max_companies)
+        return industry, [], []
+
+    industry, peers = find_industry_peers(
+        cik,
+        max_companies=max_companies,
+        candidate_pool=max(max_companies * 5, max_companies + 5, 20),
+    )
     peer_facts: List[dict] = []
     successful_peers: List[TickerInfo] = []
     for peer in peers:
+        if len(successful_peers) >= max_companies:
+            break
         try:
             facts = fetch_company_facts(peer.cik)
         except SECClientError:
@@ -227,13 +242,25 @@ def select_fact(
     *,
     period: str = "annual",
     forms: Optional[Iterable[str]] = None,
+    reference: Optional[dict] = None,
 ) -> Optional[dict]:
     """Select the most recent fact for ``tag`` matching ``period``."""
     period = period.lower()
     if forms is None:
         forms = ("10-K",) if period == "annual" else ("10-Q", "10-K")
 
-    candidates = []
+    reference_end = None
+    reference_form = None
+    reference_accn = None
+    reference_fy = None
+    if reference:
+        reference_end = reference.get("end")
+        reference_form = reference.get("form")
+        reference_accn = reference.get("accn")
+        reference_fy = reference.get("fy")
+
+    candidates: List[Tuple[int, datetime, dict]] = []
+    fallback_candidates: List[Tuple[datetime, dict]] = []
     for item in _iter_facts_for_tag(facts, tag):
         form = item.get("form")
         if form not in forms:
@@ -247,12 +274,28 @@ def select_fact(
             end_date = datetime.fromisoformat(end)
         except (TypeError, ValueError):
             continue
-        candidates.append((end_date, item))
+        match_score = 0
+        if reference_accn and item.get("accn") == reference_accn:
+            match_score += 100
+        if reference_end and item.get("end") == reference_end:
+            match_score += 20
+        if reference_fy and item.get("fy") == reference_fy:
+            match_score += 10
+        if reference_form and item.get("form") == reference_form:
+            match_score += 1
+        if match_score:
+            candidates.append((match_score, end_date, item))
+        else:
+            fallback_candidates.append((end_date, item))
 
-    if not candidates:
+    if candidates:
+        candidates.sort(key=lambda x: (x[0], x[1]), reverse=True)
+        return candidates[0][2]
+
+    if not fallback_candidates:
         return None
-    candidates.sort(key=lambda x: x[0], reverse=True)
-    return candidates[0][1]
+    fallback_candidates.sort(key=lambda x: x[0], reverse=True)
+    return fallback_candidates[0][1]
 
 
 def _unit_multiplier(uom: Optional[str]) -> float:

@@ -16,7 +16,6 @@ def _build_lines():
     return [
         CommonSizeLine(label="Revenue", value=100_000_000.0, common_size=1.0),
         CommonSizeLine(label="Net income", value=25_000_000.0, common_size=0.25),
-
     ]
 
 

@@ -6,7 +6,6 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 from commonize import common_size, sec_client
 
 
-
 def _build_facts(tag_values):
     return {
         "facts": {
@@ -176,3 +175,158 @@ def test_common_size_line_formats_values_in_millions():
 def test_extract_value_respects_unit_metadata():
     fact = {"val": 125.0, "uom": "USDm"}
     assert sec_client.extract_value(fact) == 125_000_000.0
+
+
+def test_income_statement_derives_missing_values():
+    facts = {
+        "facts": {
+            "us-gaap": {
+                "Revenues": {
+                    "units": {
+                        "USD": [
+                            {
+                                "val": 200.0,
+                                "end": "2023-12-31",
+                                "form": "10-K",
+                                "fp": "FY",
+                                "accn": "0001",
+                            }
+                        ]
+                    }
+                },
+                "GrossProfit": {
+                    "units": {
+                        "USD": [
+                            {
+                                "val": 80.0,
+                                "end": "2023-12-31",
+                                "form": "10-K",
+                                "fp": "FY",
+                                "accn": "0001",
+                            }
+                        ]
+                    }
+                },
+                "OperatingIncomeLoss": {
+                    "units": {
+                        "USD": [
+                            {
+                                "val": 50.0,
+                                "end": "2023-12-31",
+                                "form": "10-K",
+                                "fp": "FY",
+                                "accn": "0001",
+                            }
+                        ]
+                    }
+                },
+                "ResearchAndDevelopmentExpense": {
+                    "units": {
+                        "USD": [
+                            {
+                                "val": 20.0,
+                                "end": "2023-12-31",
+                                "form": "10-K",
+                                "fp": "FY",
+                                "accn": "0001",
+                            }
+                        ]
+                    }
+                },
+                "SellingGeneralAndAdministrativeExpense": {
+                    "units": {
+                        "USD": [
+                            {
+                                "val": 10.0,
+                                "end": "2023-12-31",
+                                "form": "10-K",
+                                "fp": "FY",
+                                "accn": "0001",
+                            }
+                        ]
+                    }
+                },
+                "IncomeTaxExpenseBenefit": {
+                    "units": {
+                        "USD": [
+                            {
+                                "val": 5.0,
+                                "end": "2023-12-31",
+                                "form": "10-K",
+                                "fp": "FY",
+                                "accn": "0001",
+                            }
+                        ]
+                    }
+                },
+                "OtherNonoperatingIncomeExpense": {
+                    "units": {
+                        "USD": [
+                            {
+                                "val": 3.0,
+                                "end": "2023-12-31",
+                                "form": "10-K",
+                                "fp": "FY",
+                                "accn": "0001",
+                            }
+                        ]
+                    }
+                },
+            }
+        }
+    }
+
+    lines = common_size.build_income_statement(facts)
+    lookup = {line.label: line for line in lines}
+
+    assert lookup["Cost of revenue"].value == 120.0
+    assert lookup["Total operating expenses"].value == 30.0
+    assert lookup["Income before taxes"].value == 50.0 + 3.0 - 0.0
+    assert lookup["Net income"].value == 50.0 + 3.0 - 5.0
+
+
+def test_income_statement_respects_reference_context():
+    facts = {
+        "facts": {
+            "us-gaap": {
+                "Revenues": {
+                    "units": {
+                        "USD": [
+                            {
+                                "val": 400.0,
+                                "end": "2023-12-31",
+                                "form": "10-K",
+                                "fp": "FY",
+                                "accn": "0001",
+                            }
+                        ]
+                    }
+                },
+                "CostOfRevenue": {
+                    "units": {
+                        "USD": [
+                            {
+                                "val": 250.0,
+                                "end": "2023-12-31",
+                                "form": "10-K",
+                                "fp": "FY",
+                                "accn": "0002",
+                            },
+                            {
+                                "val": 260.0,
+                                "end": "2023-12-31",
+                                "form": "10-K",
+                                "fp": "FY",
+                                "accn": "0001",
+                            },
+                        ]
+                    }
+                },
+            }
+        }
+    }
+
+    lines = common_size.build_income_statement(facts)
+    cost_line = next(line for line in lines if line.label == "Cost of revenue")
+    assert cost_line.value == 260.0
+
