@@ -90,3 +90,50 @@ All company and industry data are sourced from the U.S. Securities and Exchange 
 4. **Automation & monitoring** – Expand the benchmark worker with scheduling, logging, and observability to ensure reliability.
 
 Contributions and ideas are welcome!
+
+## Airline Reservation System
+
+The repository now also includes a self-contained airline reservation prototype located in the
+`airline_reservation/` package. It demonstrates how to manage flights, passengers, bookings, and a
+mock payment workflow with transactional safety.
+
+### Highlights
+
+- **Robust database layer** – SQLAlchemy models capture flights, passengers, bookings, and payments.
+- **Transactional booking flow** – `book_seat` locks a flight record, validates seat availability,
+  processes a mock payment, and updates loyalty points atomically.
+- **Concurrency aware** – The services are exercised by new tests that spawn concurrent booking
+  attempts to verify that capacity limits are respected even under contention.
+- **Sample data generator** – `airline_reservation.dataset.generate_sample_data` can quickly create
+  thousands of realistic records for functional or load tests.
+- **Simple PyQt UI** – `airline_reservation.ui.launch_ui` spins up a minimal GUI for searching flights
+  and creating passenger bookings.
+
+### Usage
+
+```bash
+python - <<'PY'
+from airline_reservation.database import init_db
+from airline_reservation.dataset import generate_sample_data
+
+session_factory = init_db('sqlite+pysqlite:///airline_demo.db')
+summary = generate_sample_data(session_factory)
+print(summary)
+PY
+```
+
+To explore the GUI (PyQt6 is optional and only required for this step):
+
+```bash
+python - <<'PY'
+from airline_reservation.database import init_db
+from airline_reservation.dataset import generate_sample_data
+from airline_reservation.ui import launch_ui
+
+session_factory = init_db('sqlite+pysqlite:///airline_demo.db')
+generate_sample_data(session_factory, flights=5, passengers=20, bookings=30)
+launch_ui(session_factory)
+PY
+```
+
+Run the full automated test suite, including the new reservation scenarios, with `pytest`.
